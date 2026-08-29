@@ -1,0 +1,42 @@
+{
+  "port": 8787,
+  "bind": ["127.0.0.1", "172.17.0.1"],
+  "debounceMs": 3000,
+  "uuidTtlMs": 60000,
+  "soundQueueMax": 5,
+
+  "defaultRule": {
+    "channels": ["sound", "notify"],
+    "sound": "message",
+    "level": "normal",
+    "title": "needs attention"
+  },
+
+  "rules": {
+    "Notification": { "sound": "window-attention", "level": "critical", "title": "needs your input", "group": "attention" },
+
+    "Notification:permission_prompt":     { "sound": "window-attention", "level": "critical", "title": "wants permission",           "group": "attention" },
+    "Notification:idle_prompt":           { "sound": "window-question",  "level": "critical", "title": "is waiting on you",          "group": "attention" },
+    "Notification:agent_needs_input":     { "sound": "window-question",  "level": "critical", "title": "needs your input",           "group": "attention" },
+    "Notification:elicitation_dialog":    { "sound": "window-question",  "level": "critical", "title": "is asking you something",    "group": "attention" },
+    "Notification:elicitation_url_dialog":{ "sound": "window-question",  "level": "critical", "title": "needs you to open a URL",    "group": "attention" },
+    "Notification:agent_completed":       { "sound": "complete",         "level": "normal",   "title": "finished",                   "group": "done" },
+
+    "Notification:quota_auto_resume_stale":    { "sound": "dialog-warning", "level": "critical", "title": "quota resume went stale",   "group": "quota" },
+    "Notification:quota_auto_resume_disabled": { "sound": "dialog-warning", "level": "critical", "title": "quota auto-resume is off",  "group": "quota" },
+    "Notification:quota_auto_resume_fired":    { "sound": "message",        "level": "low",      "title": "resumed after quota",       "group": "quota" },
+
+    "Notification:auth_success":        { "ignore": true },
+    "Notification:elicitation_complete":{ "ignore": true },
+    "Notification:elicitation_response":{ "ignore": true },
+
+    "StopFailure":  { "sound": "dialog-error", "level": "critical", "title": "stopped with an error" },
+    "Stop":         { "sound": "complete",     "level": "normal",   "title": "finished",   "group": "done" },
+    "TaskCompleted":{ "sound": "complete",     "level": "normal",   "title": "task done",  "group": "done" },
+    "SubagentStop": { "sound": "message",      "level": "low",      "title": "subagent done" },
+
+    "PermissionRequest": { "sound": "window-attention", "level": "critical", "title": "wants permission",        "group": "attention" },
+    "Elicitation":       { "sound": "window-question",  "level": "critical", "title": "is asking you something", "group": "attention" },
+    "TeammateIdle":      { "sound": "window-question",  "level": "critical", "title": "teammate is idle",        "group": "attention" }
+  }
+}

@@ -1,0 +1,17 @@
+[Unit]
+Description=Claude Code host alert service
+# Optional. The Omarchy plugin supervises this process itself, so install this
+# unit only for a headless host, or one not running the Omarchy shell. Running
+# both is harmless — whichever starts second sees the port taken and exits.
+After=dbus.socket
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+# Adjust if the plugin lives elsewhere. The launcher finds Node on its own.
+ExecStart=%h/.config/omarchy/plugins/idan.claude-alerts/bin/claude-alerts-server
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

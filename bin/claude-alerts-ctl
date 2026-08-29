@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Small control surface for the alert service, used by the bar widget and
+# handy by hand. Keeps shell work (window focusing, curl) out of QML.
+
+set -euo pipefail
+
+TOKEN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/claude-alerts/token"
+PORT="${CLAUDE_ALERTS_PORT:-8787}"
+BASE="http://127.0.0.1:$PORT"
+
+token() { [[ -r $TOKEN_FILE ]] && tr -d '\n' < "$TOKEN_FILE" || echo ""; }
+api() {
+  local path="$1"; shift
+  curl -fsS -m 5 -H "X-Alert-Token: $(token)" -H 'Content-Type: application/json' "$BASE$path" "$@"
+}
+
+# Focus the window belonging to a project, by matching its name in the title.
+# VSCode titles carry the workspace folder name, which is exactly the project
+# name the service derives from the hook's cwd.
+focus_window() {
+  local project="$1" addr
+  command -v hyprctl >/dev/null 2>&1 || return 0
+  addr=$(hyprctl -j clients 2>/dev/null |
+    jq -r --arg p "$project" 'map(select(.title != null and (.title | ascii_downcase | contains($p | ascii_downcase))))[0].address // empty') || return 0
+  [[ -n $addr ]] || return 1
+  hyprctl dispatch focuswindow "address:$addr" >/dev/null
+}
+
+case "${1:-}" in
+  focus)
+    [[ -n ${2:-} ]] || { echo "usage: claude-alerts-ctl focus <project>" >&2; exit 2; }
+    focus_window "$2" || echo "claude-alerts: no window matching '$2'" >&2
+    # Acting on it is the same as attending to it.
+    api /clear -X POST -d "{\"project\":$(jq -Rn --arg p "$2" '$p')}" >/dev/null || true
+    ;;
+  clear)
+    if [[ -n ${2:-} ]]; then api /clear -X POST -d "{\"project\":$(jq -Rn --arg p "$2" '$p')}"
+    else api /clear -X POST -d '{}'; fi
+    ;;
+  state)  api /state ;;
+  health) curl -fsS -m 5 "$BASE/health" ;;
+  test)   api /test -X POST -d '{}' ;;
+  *)
+    cat >&2 <<USAGE
+usage: claude-alerts-ctl <command>
+  focus <project>   focus that project's window and clear it from the list
+  clear [project]   clear one project, or all
+  state             what is currently waiting on you
+  health            service liveness
+  test              fire a test alert
+USAGE
+    exit 2 ;;
+esac

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "idan.claude-alerts",
+  "name": "Claude Alerts",
+  "version": "1.0.0",
+  "author": "idan",
+  "license": "MIT",
+  "description": "Sound, notification, and a bar badge when a Claude Code agent in a devcontainer needs you.",
+  "kinds": ["service", "bar-widget"],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Claude Alerts",
+    "description": "How many agents are waiting on you; click to see which, and jump straight to it.",
+    "category": "AI",
+    "aliases": ["claude-alerts", "agent-alerts"],
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

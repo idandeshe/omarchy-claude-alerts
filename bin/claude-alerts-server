@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Launch the alert service with whatever Node this machine has.
+#
+# The Omarchy shell spawns plugins with a minimal environment, so a Node that
+# only exists as a mise/nvm/fnm shim on an interactive PATH will not be found
+# by name alone. Probe the usual homes before giving up, and when we do give
+# up, say exactly what to install.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENTRY="$ROOT/src/server.ts"
+
+die() { echo "claude-alerts: $*" >&2; exit 1; }
+
+candidates() {
+  [[ -n ${CLAUDE_ALERTS_NODE:-} ]] && echo "$CLAUDE_ALERTS_NODE"
+  command -v node 2>/dev/null || true
+  [[ -x "$HOME/.local/share/mise/shims/node" ]] && echo "$HOME/.local/share/mise/shims/node"
+  command -v mise >/dev/null 2>&1 && mise which node 2>/dev/null || true
+  # Version managers keep their active install behind a "default"/"current" alias.
+  for p in \
+    "$HOME/.local/share/fnm/aliases/default/bin/node" \
+    "$HOME/.nvm/alias/default" \
+    "$HOME/.volta/bin/node" \
+    /usr/local/bin/node \
+    /usr/bin/node
+  do
+    [[ -x $p ]] && echo "$p"
+  done
+  # nvm keeps versioned installs only; take the highest.
+  if [[ -d "$HOME/.nvm/versions/node" ]]; then
+    find "$HOME/.nvm/versions/node" -maxdepth 2 -name node -type f -perm -u+x 2>/dev/null | sort -V | tail -1
+  fi
+}
+
+NODE=""
+while read -r candidate; do
+  [[ -n $candidate && -x $candidate ]] || continue
+  NODE="$candidate"
+  break
+done < <(candidates)
+
+[[ -n $NODE ]] || die "no node found. Install it with: sudo pacman -S nodejs   (needs Node 22 or newer)"
+
+MAJOR="$("$NODE" -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+
+# Node runs TypeScript directly: unflagged from 23.6, behind a flag on 22.
+if   (( MAJOR >= 23 )); then exec "$NODE" "$ENTRY"
+elif (( MAJOR >= 22 )); then exec "$NODE" --experimental-strip-types "$ENTRY"
+else die "node $MAJOR is too old to run TypeScript directly; need 22 or newer (found $NODE)"
+fi

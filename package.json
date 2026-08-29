@@ -1,0 +1,10 @@
+{
+  "name": "claude-alerts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Host-side alert service for Claude Code agents running in devcontainers",
+  "scripts": {
+    "start": "node src/server.ts"
+  }
+}
