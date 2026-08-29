@@ -131,6 +131,25 @@ four layers:
 4. **The badge** — the durable half. A sound you miss while away is gone; the
    bar keeps naming who is waiting until you deal with them.
 
+## Clicking the notification
+
+Click the toast and you land on that project's VS Code window; the entry clears
+itself at the same time. That is the fastest path from "something needs me" to
+being there.
+
+This uses `omarchy-notification-send --exec`, which stores the click command as
+a hint the shell runs detached — so the toast stays clickable after the sender
+has exited, and still works from notification history. A plain libnotify action
+cannot do that: the shell only invokes it while the sender is alive.
+
+Off Omarchy the toast still appears via `notify-send`, just without the click.
+
+The window is found by slug-normalizing both the project name and the window
+title before comparing, because the two are written differently — project
+`checkout-service` against a title reading
+`… checkout (Workspace) [Dev Container: Checkout Service] …`. If several windows
+match, the most recently focused one wins.
+
 ## The bar widget
 
 Shows a count of agents blocked on you, and takes no space at all when none

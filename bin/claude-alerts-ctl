@@ -14,16 +14,37 @@ api() {
   curl -fsS -m 5 -H "X-Alert-Token: $(token)" -H 'Content-Type: application/json' "$BASE$path" "$@"
 }
 
-# Focus the window belonging to a project, by matching its name in the title.
-# VSCode titles carry the workspace folder name, which is exactly the project
-# name the service derives from the hook's cwd.
+# Focus the window belonging to a project.
+#
+# Both sides are slug-normalized before comparing, because the project name is
+# a slug derived from the hook's cwd while the window title is prose. A VS Code
+# devcontainer window reads:
+#
+#   Fix login bug - checkout (Workspace) [Dev Container: Checkout Service] - Visual Studio Code
+#
+# so a literal search for "checkout-service" finds nothing. Normalizing both to
+# "checkout-service" matches. It has to be a containment test over the whole
+# title: the leading segment is the active tab name and changes constantly, and
+# only the "(Workspace) [Dev Container: …]" tail is stable.
 focus_window() {
   local project="$1" addr
   command -v hyprctl >/dev/null 2>&1 || return 0
-  addr=$(hyprctl -j clients 2>/dev/null |
-    jq -r --arg p "$project" 'map(select(.title != null and (.title | ascii_downcase | contains($p | ascii_downcase))))[0].address // empty') || return 0
+  addr=$(hyprctl -j clients 2>/dev/null | jq -r --arg p "$project" '
+    def slug: ascii_downcase | gsub("[^a-z0-9]+";"-") | sub("^-";"") | sub("-$";"");
+    map(select(.title != null and (.title | slug | contains($p | slug))))
+    # focusHistoryID ascending = most recently focused first, the right window
+    # to pick if a project name happens to appear in two titles.
+    | sort_by(.focusHistoryID) | .[0].address // empty') || return 0
   [[ -n $addr ]] || return 1
-  hyprctl dispatch focuswindow "address:$addr" >/dev/null
+
+  # Current Hyprland takes a Lua dispatch and rejects the old positional form
+  # outright ("your syntax might need to be updated"); older builds only know
+  # the positional one. Same two-step Omarchy's own omarchy-hyprland-focus-app
+  # uses. Either way, report success on the focus, not on the fallback's status.
+  hyprctl dispatch "hl.dsp.focus({ window = \"address:$addr\" })" >/dev/null 2>&1 ||
+    hyprctl dispatch focuswindow "address:$addr" >/dev/null 2>&1 ||
+    return 1
+  return 0
 }
 
 case "${1:-}" in

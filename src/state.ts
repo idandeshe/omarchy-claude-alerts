@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { forgetNotification } from "./channels/notify.ts";
 import { log } from "./config.ts";
 import type { Alert, WaitingEntry } from "./types.ts";
 
@@ -56,8 +57,12 @@ export function markWaiting(alert: Alert): void {
 
 /** The agent moved on by itself, or you dealt with it. */
 export function clearWaiting(project?: string): number {
+  const projects = project ? [project] : [...waiting.keys()];
   const removed = project ? (waiting.delete(project) ? 1 : 0) : waiting.size;
   if (!project) waiting.clear();
+  // Its toast is finished with too; a kept id would make the next alert for
+  // this project silently replace a notification that is no longer on screen.
+  for (const name of projects) forgetNotification(name);
   if (removed) write();
   return removed;
 }
