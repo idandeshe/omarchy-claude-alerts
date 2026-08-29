@@ -106,6 +106,22 @@ BarWidget {
     }
   }
 
+  // Routes `omarchy-shell idan.claude-alerts <method>`. open/close/show/hide/
+  // toggle are the contract every bar widget with a panel is expected to
+  // expose; clear and count are here because they are genuinely scriptable —
+  // a keybind that dismisses everything, or a status line reading the count.
+  IpcHandler {
+    target: "idan.claude-alerts"
+
+    function open(): void { root.open() }
+    function close(): void { root.close() }
+    function show(): void { root.open() }
+    function hide(): void { root.close() }
+    function toggle(): void { root.togglePanel() }
+    function clear(): void { root.clearAll() }
+    function count(): string { return String(root.count) }
+  }
+
   // ---- Bar slot ------------------------------------------------------------
 
   // Nothing waiting, nothing drawn — and no gap left behind either.

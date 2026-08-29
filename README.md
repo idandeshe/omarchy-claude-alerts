@@ -32,8 +32,21 @@ sudo ufw allow from 172.16.0.0/12 to any port 8787 proto tcp comment 'claude-ale
 cat ~/.config/claude-alerts/token
 ```
 
-**Requirements:** Node 22 or newer (`sudo pacman -S nodejs`), plus `curl` and
-`jq`. Nothing is installed inside your containers.
+Nothing is installed inside your containers.
+
+### Dependencies
+
+| Needs | For | Ships with Omarchy? |
+|---|---|---|
+| Omarchy 4 (Quattro) / `omarchy-shell` | The bar widget, and clickable toasts | yes |
+| **Node 22 or newer** | The alert service itself | **no — `sudo pacman -S nodejs`** |
+| `curl`, `jq` | `claude-alerts-ctl` | yes |
+| `libnotify` (`notify-send`) | Notifications off Omarchy | yes |
+| `libcanberra` (`canberra-gtk-play`), or `libpulse` (`paplay`) | Playing the sound | yes |
+| `hyprctl` | Focusing a window on click | yes |
+
+Node is the only thing you are likely to be missing. The service runs the
+TypeScript directly — there is no build step and no `node_modules`.
 
 ### About the firewall step
 
@@ -252,6 +265,30 @@ export type Channel = { name: string; send(alert: Alert): Promise<void> }
 
 Write `src/channels/push.ts`, add it to the array in `src/channels/index.ts`,
 then name it in a rule's `channels`. Nothing else changes.
+
+## Removing
+
+```bash
+omarchy plugin remove idan.claude-alerts
+```
+
+That stops the service and removes the plugin. It leaves your data alone, so
+clean up whatever you no longer want:
+
+```bash
+rm -rf ~/.config/claude-alerts              # config and token
+rm -rf ~/.local/state/omarchy/claude-alerts # the waiting list
+rm -f  ~/.local/bin/claude-alerts-ctl       # the CLI symlink, if you made one
+sudo ufw delete allow from 172.16.0.0/12 to any port 8787 proto tcp
+```
+
+Then delete the `hooks` blocks you added to any project's
+`.claude/settings.local.json`. If you installed the optional systemd unit,
+`systemctl --user disable --now claude-alerts` and remove it from
+`~/.config/systemd/user/`.
+
+Nothing else is touched: the plugin never edits your Omarchy or Claude Code
+configuration for you.
 
 ## Running without Omarchy
 
