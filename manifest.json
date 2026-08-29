@@ -3,7 +3,7 @@
   "id": "idan.claude-alerts",
   "name": "Claude Alerts",
   "version": "1.1.0",
-  "author": "idan",
+  "author": "Idan Deshe",
   "license": "MIT",
   "description": "Sound, notification, and a bar badge when a Claude Code agent in a devcontainer needs you.",
   "kinds": ["service", "bar-widget"],
