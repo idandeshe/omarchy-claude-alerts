@@ -129,6 +129,24 @@ export function dispatch(resolved: Resolved): DispatchStatus {
     return "ignored";
   }
 
+  // A clear is applied before any suppression runs. Answering a question lands
+  // moments after the event that raised the alert, which is exactly when a
+  // same-group debounce would swallow it — and a swallowed clear leaves the
+  // badge lit with nothing left to put it out. Clearing is idempotent and
+  // costs nothing, so suppression has nothing to protect here.
+  if (state === "clear") {
+    const removed = clearWaiting(alert.project);
+    // The clearing events fire on every tool batch; a line per no-op would
+    // bury everything else in the journal.
+    if (removed) log(`resolved ${alert.project} (${alert.event})`);
+  }
+
+  // Silent state-only events stop here. They announce nothing, so there is no
+  // reason to spend uuid or debounce bookkeeping on them — and without this,
+  // every idle tool batch logs a debounce line for a group nobody alerts on.
+  // Events that do announce (Stop clears *and* chimes) carry on below.
+  if (names.length === 0 && state !== "waiting") return "sent";
+
   const firstSeen = seenUuids.get(alert.uuid);
   if (firstSeen !== undefined && now - firstSeen < config().uuidTtlMs) {
     log(`duplicate uuid ${alert.uuid} for ${alert.project}|${alert.event}, ignored`);
@@ -146,8 +164,12 @@ export function dispatch(resolved: Resolved): DispatchStatus {
 
   if (lastFired.size > 500 || seenUuids.size > 2000) prune(now);
 
+  // Deliberately after the debounce: a debounced repeat must not refresh
+  // `since`, or "waited 4m" would keep resetting to zero.
   if (state === "waiting") markWaiting(alert);
-  else if (state === "clear") clearWaiting(alert.project);
+
+  // Silent rules carry no channels — a state change with nothing to announce.
+  if (names.length === 0) return "sent";
 
   log(
     `alert ${alert.project}|${alert.event} group=${alert.group} ` +

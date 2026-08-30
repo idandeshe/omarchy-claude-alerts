@@ -27,8 +27,13 @@
     "Notification:quota_auto_resume_fired":    { "sound": "message",        "level": "low",      "title": "resumed after quota",       "group": "quota" },
 
     "Notification:auth_success":        { "ignore": true },
-    "Notification:elicitation_complete":{ "ignore": true },
-    "Notification:elicitation_response":{ "ignore": true },
+
+    "Notification:elicitation_complete":{ "state": "clear", "channels": [], "group": "resolved" },
+    "Notification:elicitation_response":{ "state": "clear", "channels": [], "group": "resolved" },
+    "ElicitationResult":                { "state": "clear", "channels": [], "group": "resolved" },
+    "UserPromptSubmit":                 { "state": "clear", "channels": [], "group": "resolved" },
+    "PostToolUse":                      { "state": "clear", "channels": [], "group": "resolved" },
+    "PostToolBatch":                    { "state": "clear", "channels": [], "group": "resolved" },
 
     "StopFailure":  { "sound": "dialog-error", "level": "critical", "title": "stopped with an error" },
     "Stop":         { "sound": "complete",     "level": "normal",   "title": "finished",   "group": "done" },

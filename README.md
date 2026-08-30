@@ -112,7 +112,8 @@ is waiting on a human, tagged with a `notification_type`:
 | `elicitation_url_dialog` | Needs you to open a URL | `window-question`, critical |
 | `agent_completed` | An agent finished | `complete`, normal |
 | `quota_auto_resume_stale` / `_disabled` | Quota resume needs you | `dialog-warning`, critical |
-| `auth_success`, `elicitation_complete`, `elicitation_response` | Informational | **ignored** |
+| `elicitation_complete`, `elicitation_response` | You answered an elicitation | **clears the badge**, silently |
+| `auth_success` | Informational | **ignored** |
 
 Wire `Notification` and every attention case is covered. Alongside it:
 
@@ -128,6 +129,69 @@ Wire `Notification` and every attention case is covered. Alongside it:
 The blocking events sit on the agent's critical path and buy no extra signal.
 Wire them anyway and they share a debounce `group` with their `Notification`
 twin, so you still get one alert per real dialog.
+
+## Clearing it by answering
+
+An alert that stays lit after you have dealt with it is an alert you stop
+trusting. These hooks put the badge out on their own, and none of them makes a
+sound or raises a toast — they only change the badge:
+
+```json
+"UserPromptSubmit": [
+  { "hooks": [ { "type": "http", "url": "http://172.17.0.1:8787/hook",
+                 "timeout": 5, "headers": { "X-Alert-Token": "PASTE_TOKEN_HERE" } } ] }
+],
+"PostToolUse": [
+  { "matcher": "AskUserQuestion",
+    "hooks": [ { "type": "http", "url": "http://172.17.0.1:8787/hook",
+                 "timeout": 5, "headers": { "X-Alert-Token": "PASTE_TOKEN_HERE" } } ] }
+],
+"PostToolBatch": [
+  { "hooks": [ { "type": "http", "url": "http://172.17.0.1:8787/hook",
+                 "timeout": 5, "headers": { "X-Alert-Token": "PASTE_TOKEN_HERE" } } ] }
+]
+```
+
+| Hook | Clears when |
+|---|---|
+| `PostToolUse` (matcher `AskUserQuestion`) | You answered Claude's question |
+| `UserPromptSubmit` | You typed a prompt — the real "I'm back" signal |
+| `PostToolBatch` | The agent resumed work, which is how an approved permission prompt is noticed |
+| `ElicitationResult` | You answered an MCP elicitation |
+
+`elicitation_complete` and `elicitation_response` need no hook of their own —
+they already arrive on the `Notification` hook.
+
+**Why `PostToolBatch` is in that list.** Claude Code has no "permission
+approved" event; only `PermissionDenied` exists, and it covers auto-mode
+denials. An approval is silent, so the only way to notice you granted one is
+that the agent started working again. `PostToolBatch` fires once per batch
+rather than once per tool, which keeps that cheap.
+
+Its trade-off: it means "the agent did some work", not "you answered". With
+parallel work in flight it can clear the badge while something else is still
+genuinely blocked. Drop it from a project's hooks if that bothers you — the
+other signals have no such ambiguity, and nothing in the service changes.
+
+### Clearing it from the agent
+
+Automatic clearing is the reliable path; this is a supplement for when the agent
+should say "I am done asking". It depends on the model choosing to run it:
+
+```bash
+curl -s -X POST http://172.17.0.1:8787/clear \
+  -H "X-Alert-Token: $CLAUDE_ALERT_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"project":"my-project"}'
+```
+
+Two things make it work in practice:
+
+- Pass the token in with `"remoteEnv": { "CLAUDE_ALERT_TOKEN": "…" }` in
+  `devcontainer.json`, so no secret sits in the command.
+- **Allow the command in `permissions.allow`.** Otherwise the agent's `curl`
+  raises a permission prompt — which fires a `Notification` and lights the
+  badge. The request to clear the alert would create one.
 
 ## Why you don't get alert spam
 
