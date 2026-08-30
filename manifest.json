@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "idan.claude-alerts",
   "name": "Claude Alerts",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": "Idan Deshe",
   "license": "MIT",
   "description": "Sound, notification, and a bar badge when a Claude Code agent in a devcontainer needs you.",

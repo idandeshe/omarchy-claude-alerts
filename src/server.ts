@@ -66,9 +66,18 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   const url = new URL(req.url ?? "/", "http://localhost");
   const route = url.pathname.replace(/\/+$/, "") || "/";
 
-  // Liveness is open on loopback so you can check it without digging out the token.
+  // Liveness stays open on loopback so you can check the service is up from
+  // the host without digging out the token — but "is it up" is all an
+  // unauthorized caller gets. The detail below names paths, the event table
+  // and how many agents are waiting, and every process on this machine clears
+  // a loopback check by construction, so that half needs the token like
+  // everything else. Off-host callers are unchanged: token or 401, and even
+  // the 401 answers "the port is reachable" for the container round-trip.
   if (route === "/health" && req.method === "GET") {
-    if (!isLoopback(req) && !authorized(req)) return json(res, 401, { error: "unauthorized" });
+    if (!authorized(req)) {
+      if (isLoopback(req)) return json(res, 200, { ok: true });
+      return json(res, 401, { error: "unauthorized" });
+    }
     const { port, bind, debounceMs, uuidTtlMs, rules } = config();
     return json(res, 200, {
       ok: true,

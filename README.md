@@ -264,7 +264,7 @@ claude-alerts-ctl test              # fire a test alert
 | `POST` | `/alert` | Generic alert for scripts/CI |
 | `POST` | `/clear` | Clear one project (`{"project":"x"}`) or all (`{}`) |
 | `GET` | `/state` | The waiting list |
-| `GET` | `/health` | Liveness. No auth on loopback |
+| `GET` | `/health` | Full diagnostic with the token. Without it, loopback gets `{"ok":true}` and nothing else |
 | `POST` | `/test` | Fire a synthetic alert |
 
 Auth is `X-Alert-Token: <token>` or `Authorization: Bearer <token>`.
@@ -372,7 +372,7 @@ exits.
 
 | Symptom | Check |
 |---|---|
-| Container times out | The ufw rule. `docker exec <c> curl -m5 http://172.17.0.1:8787/health` |
+| Container times out | The ufw rule. `docker exec <c> curl -m5 http://172.17.0.1:8787/health` — a `401` is a *good* sign, it means the port is reachable |
 | No sound | `canberra-gtk-play -i window-attention` on the host |
 | No notification | `notify-send test body` |
 | Widget never appears | It hides when nothing is waiting. `claude-alerts-ctl state` |

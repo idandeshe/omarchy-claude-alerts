@@ -107,9 +107,16 @@ Panel {
               anchors.verticalCenter: parent.verticalCenter
               spacing: Style.space(2)
 
+              // project, title and message are the agent's words, arriving
+              // over the HTTP API — not ours. The default AutoText sniffs any
+              // markup-shaped string and promotes it to rich text inside the
+              // long-lived shell process, where the markup is honoured and
+              // rich text can pull in resources it references. Every label here
+              // is pinned to plain text, including the ones we compose.
               Text {
                 width: parent.width
                 elide: Text.ElideRight
+                textFormat: Text.PlainText
                 text: (row.modelData.project || "") + " — " + (row.modelData.title || "")
                 color: row.modelData.level === "critical" ? "#e06c75" : root.foreground
                 font.family: root.fontFamily
@@ -120,6 +127,7 @@ Panel {
               Text {
                 width: parent.width
                 elide: Text.ElideRight
+                textFormat: Text.PlainText
                 text: row.modelData.message || ""
                 color: root.foreground
                 opacity: 0.7
@@ -133,6 +141,7 @@ Panel {
               anchors.right: parent.right
               anchors.rightMargin: Style.space(8)
               anchors.verticalCenter: parent.verticalCenter
+              textFormat: Text.PlainText
               text: root.elapsed(row.modelData.since)
               color: root.foreground
               opacity: 0.5
@@ -162,6 +171,7 @@ Panel {
 
           Text {
             anchors.centerIn: parent
+            textFormat: Text.PlainText
             text: "Clear all"
             color: root.foreground
             opacity: 0.75

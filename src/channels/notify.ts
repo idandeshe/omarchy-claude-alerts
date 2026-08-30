@@ -15,6 +15,22 @@ const CTL = path.resolve(fileURLToPath(new URL("../../bin/claude-alerts-ctl", im
 const shown = new Map<string, number>();
 
 /**
+ * Escape the three markup-significant characters before a title or message
+ * leaves for the notification daemon.
+ *
+ * The body of a toast is the agent's own prose, arriving over the HTTP API. The
+ * freedesktop spec says a daemon advertising `body-markup` renders the body as
+ * markup, and Omarchy's does — an unescaped `<b>` there comes out bold with the
+ * tags eaten, which is at best a mangled message and at worst markup we never
+ * intended, rendered inside the long-lived shell process. Escaping is what a
+ * markup-aware daemon expects; a daemon that ignores markup shows the entities
+ * literally, which is the lesser of the two failures.
+ */
+function escapeMarkup(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
  * Omarchy's own sender, when present, makes the toast clickable.
  *
  * Its --exec is stored as an `omarchy-exec-argv` hint that the shell runs
@@ -50,8 +66,8 @@ async function sendClickable(sender: string, alert: Alert): Promise<boolean> {
     "-u", URGENCY[alert.level],
     "-p", // print the id, so the next alert for this project can replace it
     ...(previous !== undefined ? ["-r", String(previous)] : []),
-    `${alert.project} — ${alert.title}`,
-    alert.message,
+    escapeMarkup(`${alert.project} — ${alert.title}`),
+    escapeMarkup(alert.message),
     // "focus" and the project stay separate argv entries: the sender rejects a
     // single --exec argument containing whitespace.
     "--exec", CTL, "focus", alert.project,
@@ -72,8 +88,8 @@ async function sendPlain(alert: Alert): Promise<void> {
     // Tag per project so repeat alerts from one agent replace each other
     // instead of stacking into a wall of notifications.
     "-h", `string:x-canonical-private-synchronous:claude-${alert.project}`,
-    `${alert.project} — ${alert.title}`,
-    alert.message,
+    escapeMarkup(`${alert.project} — ${alert.title}`),
+    escapeMarkup(alert.message),
   ], 5_000);
 
   if (code !== 0) log(`notify: notify-send exited ${code}`);

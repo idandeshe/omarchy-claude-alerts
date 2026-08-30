@@ -31,10 +31,17 @@ function write(): void {
   };
 
   try {
-    fs.mkdirSync(STATE_DIR, { recursive: true });
+    // Project names and agent prose are nobody else's business: 0700/0600, to
+    // match the config directory and the token. mkdir's mode applies only when
+    // it creates the directory, and writeFileSync's only when it creates the
+    // file, so an already-existing one (a directory from an older version, or a
+    // temp file left by a crashed write) keeps its old mode unless chmod'd.
+    fs.mkdirSync(STATE_DIR, { recursive: true, mode: 0o700 });
+    fs.chmodSync(STATE_DIR, 0o700);
     // Write-then-rename: the widget must never observe a half-written file.
     const tmp = `${STATE_FILE}.tmp`;
-    fs.writeFileSync(tmp, `${JSON.stringify(payload, null, 2)}\n`);
+    fs.writeFileSync(tmp, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600 });
+    fs.chmodSync(tmp, 0o600);
     fs.renameSync(tmp, STATE_FILE);
   } catch (err) {
     log(`state: could not write ${STATE_FILE}: ${(err as Error).message}`);

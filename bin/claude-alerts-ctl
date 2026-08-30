@@ -59,7 +59,8 @@ case "${1:-}" in
     else api /clear -X POST -d '{}'; fi
     ;;
   state)  api /state ;;
-  health) curl -fsS -m 5 "$BASE/health" ;;
+  # Sends the token, so this prints the full diagnostic rather than bare liveness.
+  health) api /health ;;
   test)   api /test -X POST -d '{}' ;;
   *)
     cat >&2 <<USAGE
